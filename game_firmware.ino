@@ -8,13 +8,13 @@ extern "C"
 #include "lauxlib.h"
 }
 
+#include <string.h>
 #include <SPIFFS.h>
+#include <ESPmDNS.h>
+#include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
 
 #include "config.h"
-#include <ESPAsyncWebServer.h>
-#include <ESPmDNS.h>
-#include <string.h>
-
 #include "toluapp.h"
 #include "game_api.h"
 
@@ -23,6 +23,10 @@ int tolua_game_api_open(lua_State *tolua_S);
 lua_State *L = NULL;
 GameApi *api;
 AsyncWebServer webServer(PORT);
+
+String files[255];
+int fileCount = 0;
+int cursor = 0;
 
 typedef void (*Scene)(void);
 Scene scene = NULL;
@@ -42,7 +46,6 @@ void setup()
     InitGameApi();
     api = GetApi();
 
-    WiFi.softAP(HOST_NAME);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     while (WiFi.status() != WL_CONNECTED)
     {
@@ -51,9 +54,59 @@ void setup()
     }
     Serial.print("Wi-Fi Connected! IP address: ");
     Serial.println(WiFi.localIP());
+    if (!MDNS.begin(HOST_NAME))
+    {
+        Serial.println("Error setup MDNS.");
+    }
     MDNS.addService("http", "tcp", PORT);
 
-    webServer.onFileUpload(handleUpload);
+    webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", "running");
+    });
+
+    webServer.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (!request->hasParam("file", true, true))
+        {
+            request->send(500);
+            return;
+        }
+        request->send(200);
+        scene = listFiles;
+    },
+                 handleUpload);
+
+    webServer.on("/delete", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (!request->hasParam("file", true))
+        {
+            request->send(404);
+            return;
+        }
+        AsyncWebParameter *p = request->getParam("file", true);
+        Serial.println(String("delete:" + p->value()).c_str());
+        if (!SPIFFS.remove(p->value()))
+        {
+            request->send(404);
+            return;
+        }
+        request->send(200);
+        scene = listFiles;
+    });
+
+    webServer.on("/list", HTTP_POST, [](AsyncWebServerRequest *request) {
+        DynamicJsonDocument doc(1500);
+        JsonArray data = doc.createNestedArray("files");
+        for (int i = 0; i < fileCount; i++)
+        {
+            data.add(files[i]);
+        }
+        String jsonString;
+        serializeJson(doc, jsonString);
+        request->send(200, "application/json", jsonString);
+    });
+
+    webServer.onNotFound([](AsyncWebServerRequest *request) {
+        request->send(404);
+    });
     webServer.begin();
 
     scene = listFiles;
@@ -75,6 +128,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     {
         File f = SPIFFS.open(String("/" + filename).c_str(), "w");
         f.print(uploadContent);
+        f.close();
         uploadContent = "";
         Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index + len);
     }
@@ -84,10 +138,6 @@ void loop()
 {
     scene();
 }
-
-String files[255];
-int fileCount = 0;
-int cursor = 0;
 
 void listFiles()
 {
@@ -124,7 +174,7 @@ void selectFile()
     else if (api->btnp(BTN_DOWN))
     {
         cursor += 1;
-        if (cursor > fileCount)
+        if (cursor >= fileCount)
         {
             cursor = fileCount;
         }
