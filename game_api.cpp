@@ -69,7 +69,8 @@ void GameApi::text(int x, int y, const char *s, int color)
     backScreen->print(s);
 }
 
-void GameApi::Draw() {
+void GameApi::Draw()
+{
     display->drawRGBBitmap(0, 0, backScreen->getBuffer(), display->width(), display->height());
 }
 

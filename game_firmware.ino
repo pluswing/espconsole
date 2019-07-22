@@ -44,7 +44,8 @@ void setup()
 
     WiFi.softAP(HOST_NAME);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
-    while (WiFi.status() != WL_CONNECTED) {
+    while (WiFi.status() != WL_CONNECTED)
+    {
         delay(1000);
         Serial.print(".");
     }
@@ -59,24 +60,28 @@ void setup()
 }
 
 String uploadContent;
-void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
-  if (!index) {
-    uploadContent = "";
-    Serial.printf("UploadStart: %s\n", filename.c_str());
-  }
-  char buff[len+1] = { 0 };
-  memcpy(buff, data, len);
-  uploadContent += buff;
+void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+{
+    if (!index)
+    {
+        uploadContent = "";
+        Serial.printf("UploadStart: %s\n", filename.c_str());
+    }
+    char buff[len + 1] = {0};
+    memcpy(buff, data, len);
+    uploadContent += buff;
 
-  if (final) {
-    File f = SPIFFS.open(String("/" + filename).c_str(), "w");
-    f.print(uploadContent);
-    uploadContent = "";
-    Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index+len);
-  }
+    if (final)
+    {
+        File f = SPIFFS.open(String("/" + filename).c_str(), "w");
+        f.print(uploadContent);
+        uploadContent = "";
+        Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index + len);
+    }
 }
 
-void loop() {
+void loop()
+{
     scene();
 }
 
@@ -84,13 +89,16 @@ String files[255];
 int fileCount = 0;
 int cursor = 0;
 
-void listFiles() {
+void listFiles()
+{
     File root = SPIFFS.open("/");
     fileCount = 0;
-    while(true) {
+    while (true)
+    {
         File file = root.openNextFile();
         Serial.println(file.name());
-        if (!file) {
+        if (!file)
+        {
             break;
         }
         files[fileCount] = file.name();
@@ -102,34 +110,45 @@ void listFiles() {
     scene = selectFile;
 }
 
-void selectFile() {
+void selectFile()
+{
     api->Update();
-    if (api->btnp(BTN_UP)) {
+    if (api->btnp(BTN_UP))
+    {
         cursor -= 1;
-        if (cursor < 0) {
+        if (cursor < 0)
+        {
             cursor = 0;
         }
-    } else if (api->btnp(BTN_DOWN)) {
+    }
+    else if (api->btnp(BTN_DOWN))
+    {
         cursor += 1;
-        if (cursor > fileCount) {
+        if (cursor > fileCount)
+        {
             cursor = fileCount;
         }
-    } else if (api->btnp(BTN_A)) {
+    }
+    else if (api->btnp(BTN_A))
+    {
         scene = loadScript;
         return;
     }
 
     api->cls(COLOR_BLACK);
-    for (int i = 0; i < fileCount; i++) {
-        api->text(10, i*10, files[i].c_str(), COLOR_WHITE);
+    for (int i = 0; i < fileCount; i++)
+    {
+        api->text(10, i * 10, files[i].c_str(), COLOR_WHITE);
     }
-    api->text(0, cursor*10, ">", COLOR_GREEN);
+    api->text(0, cursor * 10, ">", COLOR_GREEN);
 
     api->Draw();
 }
 
-void loadScript() {
-    if (L != NULL) {
+void loadScript()
+{
+    if (L != NULL)
+    {
         lua_close(L);
         L = NULL;
     }
@@ -141,9 +160,11 @@ void loadScript() {
     File f = SPIFFS.open(files[cursor].c_str(), "r");
     String script;
     char buf[256];
-    while (true) {
+    while (true)
+    {
         int n = f.readBytes(buf, 255);
-        if (n == 0) {
+        if (n == 0)
+        {
             break;
         }
         buf[n] = '\0';
@@ -152,7 +173,8 @@ void loadScript() {
     Serial.println(script.c_str());
 
     // if (luaL_dostring(L, "local api = GetApi()\nfunction update()\nend\nfunction draw()\n-- api:cls(COLOR_BLACK)\napi:circb(api:analogX() + 80, api:analogY() + 64, 20, COLOR_GREEN)\nend\n") != 0)
-    if (luaL_dostring(L, script.c_str()) != 0) {
+    if (luaL_dostring(L, script.c_str()) != 0)
+    {
         Serial.println("ERR");
         api->print(lua_tostring(L, -1));
     }
@@ -172,42 +194,52 @@ void gameMain()
     frameCount++;
     int finish = millis();
 
-    if (finish - frameCountStartTime > 1000) {
+    if (finish - frameCountStartTime > 1000)
+    {
         actualFps = frameCount;
         frameCount = 0;
         frameCountStartTime = finish;
         Serial.println("FPS: " + String(actualFps));
     }
 
-    if (frameMillis > finish - start) {
+    if (frameMillis > finish - start)
+    {
         // 許容時間ないに収まっていればdelayするだけ。
         delay(frameMillis - (finish - start));
-    } else {
+    }
+    else
+    {
         // そうじゃなければ、ドロップフレーム分updateを呼び出す
-        int drop = ceil((float) (finish - start) / frameMillis) - 1;
-        for (int i = 0; i < drop; i++) {
+        int drop = ceil((float)(finish - start) / frameMillis) - 1;
+        for (int i = 0; i < drop; i++)
+        {
             runUpdate();
         }
     }
 }
 
-void runOneFrame() {
+void runOneFrame()
+{
     runUpdate();
     runDraw();
 }
 
-void runUpdate() {
+void runUpdate()
+{
     api->Update();
 
     lua_getglobal(L, "update");
-    if (lua_pcall(L, 0, 0, 0) != 0) {
+    if (lua_pcall(L, 0, 0, 0) != 0)
+    {
         api->print(lua_tostring(L, -1));
     }
 }
 
-void runDraw() {
+void runDraw()
+{
     lua_getglobal(L, "draw");
-    if (lua_pcall(L, 0, 0, 0) != 0) {
+    if (lua_pcall(L, 0, 0, 0) != 0)
+    {
         api->print(lua_tostring(L, -1));
     }
 
