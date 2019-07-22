@@ -1,0 +1,4 @@
+#define SSID ""
+#define PASS ""
+#define HOST_NAME "espconsole"
+#define PORT 80
