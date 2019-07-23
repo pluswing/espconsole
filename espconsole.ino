@@ -22,7 +22,7 @@ int tolua_game_api_open(lua_State *tolua_S);
 
 lua_State *L = NULL;
 GameApi *api;
-AsyncWebServer webServer(PORT);
+AsyncWebServer webServer(API_PORT);
 
 String files[255];
 int fileCount = 0;
@@ -58,7 +58,7 @@ void setup()
     {
         Serial.println("Error setup MDNS.");
     }
-    MDNS.addService("http", "tcp", PORT);
+    MDNS.addService("http", "tcp", API_PORT);
 
     webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(200, "text/plain", "running");
@@ -176,7 +176,7 @@ void selectFile()
         cursor += 1;
         if (cursor >= fileCount)
         {
-            cursor = fileCount;
+            cursor = fileCount - 1;
         }
     }
     else if (api->btnp(BTN_A))
