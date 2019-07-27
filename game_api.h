@@ -1,6 +1,5 @@
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <Adafruit_ST7735.h> // Hardware-specific library for ST7735
-#include <Adafruit_MCP3008.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
 
 // TOLUA_BEGIN
 
@@ -8,9 +7,14 @@
 #define BTN_A_PIN 4
 #define BTN_B_PIN 0
 
-#define ANALOG_MAX 700
-#define ANALOG_THRETHOLD 50
+#define ANALOG_Y_PIN 34
+#define ANALOG_X_PIN 35
+
+#define ANALOG_MAX 4096
+#define ANALOG_THRETHOLD 500
 #define ANALOG_RANGE 100
+#define REVERSE_ANALOG_X true
+#define REVERSE_ANALOG_Y false
 
 #define DISPLAY_CS 5
 #define DISPLAY_RST 22
@@ -35,15 +39,6 @@
 #define BTN_RIGHT 32
 
 // TOLUA_END
-
-struct AnalogInput
-{
-public:
-    int up;
-    int down;
-    int left;
-    int right;
-};
 
 struct Analog
 {
@@ -87,15 +82,14 @@ public:
 private:
     Adafruit_ST7735 *display;
     GFXcanvas16 *backScreen;
-    Adafruit_MCP3008 *adc;
 
     unsigned int buttonState;
     unsigned int lastButtonState;
-    AnalogInput center;
+    Analog center;
     Analog stick;
 
-    AnalogInput ReadRawAnalogInput();
-    AnalogInput ReadAnalogInputCalibrated();
+    Analog ReadRawAnalogInput();
+    Analog ReadAnalogInputCalibrated();
     Analog ReadAnalog();
 
     // TOLUA_BEGIN

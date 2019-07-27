@@ -1,5 +1,4 @@
 #define FPS 60
-#undef TOLUA_RELEASE
 
 extern "C"
 {
@@ -46,68 +45,7 @@ void setup()
     InitGameApi();
     api = GetApi();
 
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(1000);
-        Serial.print(".");
-    }
-    Serial.print("Wi-Fi Connected! IP address: ");
-    Serial.println(WiFi.localIP());
-    if (!MDNS.begin(HOST_NAME))
-    {
-        Serial.println("Error setup MDNS.");
-    }
-    MDNS.addService("http", "tcp", API_PORT);
-
-    webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(200, "text/plain", "running");
-    });
-
-    webServer.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) {
-        if (!request->hasParam("file", true, true))
-        {
-            request->send(500);
-            return;
-        }
-        request->send(200);
-        scene = listFiles;
-    },
-                 handleUpload);
-
-    webServer.on("/delete", HTTP_POST, [](AsyncWebServerRequest *request) {
-        if (!request->hasParam("file", true))
-        {
-            request->send(404);
-            return;
-        }
-        AsyncWebParameter *p = request->getParam("file", true);
-        Serial.println(String("delete:" + p->value()).c_str());
-        if (!SPIFFS.remove(p->value()))
-        {
-            request->send(404);
-            return;
-        }
-        request->send(200);
-        scene = listFiles;
-    });
-
-    webServer.on("/list", HTTP_POST, [](AsyncWebServerRequest *request) {
-        DynamicJsonDocument doc(1500);
-        JsonArray data = doc.createNestedArray("files");
-        for (int i = 0; i < fileCount; i++)
-        {
-            data.add(files[i]);
-        }
-        String jsonString;
-        serializeJson(doc, jsonString);
-        request->send(200, "application/json", jsonString);
-    });
-
-    webServer.onNotFound([](AsyncWebServerRequest *request) {
-        request->send(404);
-    });
-    webServer.begin();
+    setupNetwork();
 
     scene = listFiles;
 }
@@ -146,7 +84,6 @@ void listFiles()
     while (true)
     {
         File file = root.openNextFile();
-        Serial.println(file.name());
         if (!file)
         {
             break;
@@ -154,7 +91,6 @@ void listFiles()
         files[fileCount] = file.name();
         fileCount++;
     };
-    Serial.println(String(fileCount).c_str());
 
     cursor = 0;
     scene = selectFile;
@@ -294,4 +230,70 @@ void runDraw()
     }
 
     api->Draw();
+}
+
+void setupNetwork()
+{
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(1000);
+        Serial.print(".");
+    }
+    Serial.print("Wi-Fi Connected! IP address: ");
+    Serial.println(WiFi.localIP());
+    if (!MDNS.begin(HOST_NAME))
+    {
+        Serial.println("Error setup MDNS.");
+    }
+    MDNS.addService("http", "tcp", API_PORT);
+
+    webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", "running");
+    });
+
+    webServer.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (!request->hasParam("file", true, true))
+        {
+            request->send(500);
+            return;
+        }
+        request->send(200);
+        scene = listFiles;
+    },
+                 handleUpload);
+
+    webServer.on("/delete", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (!request->hasParam("file", true))
+        {
+            request->send(404);
+            return;
+        }
+        AsyncWebParameter *p = request->getParam("file", true);
+        Serial.println(String("delete:" + p->value()).c_str());
+        if (!SPIFFS.remove(p->value()))
+        {
+            request->send(404);
+            return;
+        }
+        request->send(200);
+        scene = listFiles;
+    });
+
+    webServer.on("/list", HTTP_POST, [](AsyncWebServerRequest *request) {
+        DynamicJsonDocument doc(1500);
+        JsonArray data = doc.createNestedArray("files");
+        for (int i = 0; i < fileCount; i++)
+        {
+            data.add(files[i]);
+        }
+        String jsonString;
+        serializeJson(doc, jsonString);
+        request->send(200, "application/json", jsonString);
+    });
+
+    webServer.onNotFound([](AsyncWebServerRequest *request) {
+        request->send(404);
+    });
+    webServer.begin();
 }

@@ -6,7 +6,6 @@ GameApi::GameApi()
 {
 
     display = new Adafruit_ST7735(DISPLAY_CS, DISPLAY_DC, DISPLAY_RST);
-    adc = new Adafruit_MCP3008();
 
     display->initR(INITR_GREENTAB);
     display->setRotation(135);
@@ -21,7 +20,6 @@ GameApi::GameApi()
     pinMode(BTN_A_PIN, INPUT_PULLUP);
     pinMode(BTN_B_PIN, INPUT_PULLUP);
 
-    adc->begin();
     Calibrate();
 }
 
@@ -134,55 +132,43 @@ void GameApi::Update()
     }
 }
 
-AnalogInput GameApi::ReadRawAnalogInput()
+Analog GameApi::ReadRawAnalogInput()
 {
-    AnalogInput r;
-    r.down = adc->readADC(0);
-    r.up = adc->readADC(1);
-    r.left = adc->readADC(2);
-    r.right = adc->readADC(3);
-    return r;
+    Analog a;
+    a.x = analogRead(ANALOG_X_PIN);
+    a.y = analogRead(ANALOG_Y_PIN);
+    return a;
 }
 
-AnalogInput GameApi::ReadAnalogInputCalibrated()
+Analog GameApi::ReadAnalogInputCalibrated()
 {
-    AnalogInput r = ReadRawAnalogInput();
-    r.up -= center.up;
-    r.down -= center.down;
-    r.left -= center.left;
-    r.right -= center.right;
-    return r;
+    Analog a = ReadRawAnalogInput();
+    a.x -= center.x;
+    a.y -= center.y;
+    return a;
 }
 
 Analog GameApi::ReadAnalog()
 {
-    AnalogInput r = ReadAnalogInputCalibrated();
+    Analog r = ReadAnalogInputCalibrated();
     Analog a;
 
-    if (r.down > ANALOG_THRETHOLD)
+    if (abs(r.x) > ANALOG_THRETHOLD)
     {
-        a.y = r.down * ANALOG_RANGE / ANALOG_MAX;
-    }
-    else if (r.up > ANALOG_THRETHOLD)
-    {
-        a.y = -r.up * ANALOG_RANGE / ANALOG_MAX;
-    }
-    else
-    {
-        a.y = 0;
-    }
-
-    if (r.left > ANALOG_THRETHOLD)
-    {
-        a.x = -r.left * ANALOG_RANGE / ANALOG_MAX;
-    }
-    else if (r.right > ANALOG_THRETHOLD)
-    {
-        a.x = r.right * ANALOG_RANGE / ANALOG_MAX;
+        a.x = r.x * ANALOG_RANGE / ANALOG_MAX * (REVERSE_ANALOG_X ? -1 : 1);
     }
     else
     {
         a.x = 0;
+    }
+
+    if (abs(r.y) > ANALOG_THRETHOLD)
+    {
+        a.y = r.y * ANALOG_RANGE / ANALOG_MAX * (REVERSE_ANALOG_Y ? -1 : 1);
+    }
+    else
+    {
+        a.y = 0;
     }
 
     return a;
