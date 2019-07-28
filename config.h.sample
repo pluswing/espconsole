@@ -1,4 +1,0 @@
-#define WIFI_SSID ""
-#define WIFI_PASS ""
-#define HOST_NAME "espconsole"
-#define API_PORT 80

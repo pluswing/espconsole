@@ -67,24 +67,29 @@ void GameApi::text(int x, int y, const char *s, int color)
     backScreen->print(s);
 }
 
+void GameApi::bmp(int x, int y, const unsigned char* bmp, int w, int h, int color) {
+    backScreen->drawBitmap(x, y, bmp, w, h, color);
+}
+
+
 void GameApi::Draw()
 {
     display->drawRGBBitmap(0, 0, backScreen->getBuffer(), display->width(), display->height());
 }
 
 // Input
-unsigned int GameApi::btn(int button)
+bool GameApi::btn(int button)
 {
-    return buttonState & button;
+    return (buttonState & button) != 0;
 }
-unsigned int GameApi::btnp(int button)
+bool GameApi::btnp(int button)
 {
-    return (buttonState & button) & ((~lastButtonState) & button);
+    return ((buttonState & button) & ((~lastButtonState) & button)) != 0;
 }
 
-unsigned int GameApi::btnr(int button)
+bool GameApi::btnr(int button)
 {
-    return (lastButtonState & button) & ((~buttonState) & button);
+    return ((lastButtonState & button) & ((~buttonState) & button)) != 0;
 }
 
 int GameApi::analogY()

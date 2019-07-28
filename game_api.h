@@ -11,7 +11,7 @@
 #define ANALOG_X_PIN 35
 
 #define ANALOG_MAX 4096
-#define ANALOG_THRETHOLD 500
+#define ANALOG_THRETHOLD 1000
 #define ANALOG_RANGE 100
 #define REVERSE_ANALOG_X true
 #define REVERSE_ANALOG_Y false
@@ -65,10 +65,14 @@ public:
     void circb(int x, int y, int r, int color);
     void text(int x, int y, const char *s, int color);
 
+    // TOLUA_END
+    void bmp(int x, int y, const unsigned char* bmp, int w, int h, int color);
+    // TOLUA_BEGIN
+
     // Input/Output
-    unsigned int btn(int button);
-    unsigned int btnp(int button);
-    unsigned int btnr(int button);
+    bool btn(int button);
+    bool btnp(int button);
+    bool btnr(int button);
     int analogY();
     int analogX();
 

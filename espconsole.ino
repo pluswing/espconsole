@@ -1,5 +1,3 @@
-#define FPS 60
-
 extern "C"
 {
 #include "lua.h"
@@ -13,15 +11,33 @@ extern "C"
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
-#include "config.h"
 #include "toluapp.h"
 #include "game_api.h"
+
+#define FPS 60
+#define HOST_NAME "espconsole"
+#define API_PORT 80
+#define SETTING_BUFFER_SIZE 1500
+#define SSID_MAX 3
 
 int tolua_game_api_open(lua_State *tolua_S);
 
 lua_State *L = NULL;
 GameApi *api;
 AsyncWebServer webServer(API_PORT);
+
+struct ESPConsoleSetting
+{
+    String ssids[SSID_MAX];
+    String passwords[SSID_MAX];
+};
+
+ESPConsoleSetting setting;
+
+String ssids[255];
+int ssidCount = 0;
+String selectedSsid = "";
+String password = "";
 
 String files[255];
 int fileCount = 0;
@@ -45,36 +61,260 @@ void setup()
     InitGameApi();
     api = GetApi();
 
-    setupNetwork();
+    loadSetting();
 
-    scene = listFiles;
-}
-
-String uploadContent;
-void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
-{
-    if (!index)
-    {
-        uploadContent = "";
-        Serial.printf("UploadStart: %s\n", filename.c_str());
-    }
-    char buff[len + 1] = {0};
-    memcpy(buff, data, len);
-    uploadContent += buff;
-
-    if (final)
-    {
-        File f = SPIFFS.open(String("/" + filename).c_str(), "w");
-        f.print(uploadContent);
-        f.close();
-        uploadContent = "";
-        Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index + len);
-    }
+    scene = collectSSID;
 }
 
 void loop()
 {
     scene();
+}
+
+void collectSSID()
+{
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    int n = WiFi.scanNetworks();
+    for (int i = 0; i < n; i++)
+    {
+        ssids[i] = WiFi.SSID(i);
+    }
+    ssidCount = n;
+    scene = findConnectableWifi;
+}
+
+int findConnectableWifiIndex()
+{
+    for (int i = 0; i < SSID_MAX; i++)
+    {
+        for (int j = 0; j < ssidCount; j++)
+        {
+            Serial.println(setting.ssids[i] + "==" + ssids[j]);
+            if (setting.ssids[i] != "" && setting.ssids[i] == ssids[j])
+            {
+                Serial.println("found!");
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+void findConnectableWifi()
+{
+    if (findConnectableWifiIndex() != -1)
+    {
+        scene = connectWiFi;
+    }
+    else
+    {
+        scene = selectSSID;
+    }
+}
+
+void selectSSID()
+{
+    api->Update();
+    if (api->btnp(BTN_UP))
+    {
+        cursor -= 1;
+        if (cursor < 0)
+        {
+            cursor = 0;
+        }
+    }
+    else if (api->btnp(BTN_DOWN))
+    {
+        cursor += 1;
+        if (cursor >= ssidCount)
+        {
+            cursor = ssidCount - 1;
+        }
+    }
+    else if (api->btnp(BTN_A))
+    {
+        selectedSsid = ssids[cursor];
+        password = "";
+        scene = inputPassword;
+        return;
+    }
+    else if (api->btnp(BTN_B))
+    {
+        scene = listFiles;
+        return;
+    }
+
+    api->cls(COLOR_BLACK);
+    for (int i = 0; i < ssidCount; i++)
+    {
+        api->text(10, i * 10, ssids[i].c_str(), COLOR_WHITE);
+    }
+    api->text(0, cursor * 10, ">", COLOR_GREEN);
+
+    api->Draw();
+}
+
+char input = 'A';
+bool ok = false;
+int scrollTimer = 0;
+void inputPassword()
+{
+    api->Update();
+
+    if (api->btn(BTN_UP))
+    {
+        if (scrollTimer == 0)
+        {
+            scrollTimer = 10;
+            input -= 1;
+        }
+        scrollTimer -= 1;
+    }
+    else if (api->btn(BTN_DOWN))
+    {
+        if (scrollTimer == 0)
+        {
+            scrollTimer = 10;
+            input += 1;
+        }
+        scrollTimer -= 1;
+    }
+    else if (api->btnr(BTN_UP | BTN_DOWN))
+    {
+        scrollTimer = 0;
+    }
+    else if (api->btnp(BTN_LEFT))
+    {
+        if (ok)
+        {
+            ok = false;
+        }
+        else
+        {
+            char diff = 'a' - 'A';
+            if ('A' <= input && input <= 'Z')
+            {
+                input += diff;
+            }
+            else if ('a' <= input && input <= 'z')
+            {
+                input -= diff;
+            }
+            else
+            {
+                input = 'A';
+            }
+        }
+    }
+    else if (api->btnp(BTN_RIGHT))
+    {
+        ok = true;
+    }
+    else if (api->btnp(BTN_B))
+    {
+        if (!ok && password.length() != 0)
+        {
+            input = password.charAt(password.length() - 1);
+            password = password.substring(0, password.length() - 1);
+        }
+    }
+    else if (api->btnp(BTN_A))
+    {
+        if (ok)
+        {
+            // 確定
+            for (int i = 0; i < SSID_MAX; i++)
+            {
+                if (setting.ssids[i] == "")
+                {
+                    setting.ssids[i] = selectedSsid;
+                    setting.passwords[i] = password;
+                }
+                saveSetting();
+                scene = findConnectableWifi;
+                return;
+            }
+        }
+        else
+        {
+            password += input;
+        }
+    }
+
+    api->cls(COLOR_BLACK);
+    api->text(0, 0, ("SSID:" + selectedSsid).c_str(), COLOR_WHITE);
+    api->text(0, 10, "INPUT PASSWORD", COLOR_WHITE);
+
+    api->text(10, 30, password.c_str(), COLOR_WHITE);
+    if (!ok)
+    {
+        api->text(10 + password.length() * 6, 30, String(input).c_str(), COLOR_RED);
+    }
+
+    api->text(100, 50, "[OK]", ok ? COLOR_RED : COLOR_WHITE);
+
+    api->Draw();
+}
+
+void setupSoftAP()
+{
+    // WiFiに接続せず、ESP32自体がアクセスポイントになるパターン
+    // WiFi.softAP(ssid, password);
+    setupMDNS();
+    setupWebServer();
+    scene = listFiles;
+}
+
+void loadSetting()
+{
+    DynamicJsonDocument json(SETTING_BUFFER_SIZE);
+    File f = SPIFFS.open("/.setting.json", "r");
+    if (!f)
+    {
+        return;
+    }
+    char content[SETTING_BUFFER_SIZE];
+    f.readBytes(content, SETTING_BUFFER_SIZE);
+    f.close();
+    deserializeJson(json, content);
+
+    JsonArray ssids = json["ssids"];
+    JsonArray passwords = json["passwords"];
+    for (int i = 0; i < SSID_MAX; i++)
+    {
+        setting.ssids[i] = "";
+        setting.passwords[i] = "";
+        Serial.println("size" + String(ssids.size()));
+        if (ssids.size() > i)
+        {
+            const char *ssid = ssids[i];
+            const char *password = passwords[i];
+            setting.ssids[i] = ssid;
+            setting.passwords[i] = password;
+        }
+    }
+}
+
+void saveSetting()
+{
+    DynamicJsonDocument json(SETTING_BUFFER_SIZE);
+    JsonArray ssids = json.createNestedArray("ssids");
+    JsonArray passwords = json.createNestedArray("passwords");
+    for (int i = 0; i < SSID_MAX; i++)
+    {
+        if (setting.ssids[i] == "")
+        {
+            continue;
+        }
+        ssids.add(setting.ssids[i]);
+        passwords.add(setting.passwords[i]);
+    }
+    File f = SPIFFS.open("/.setting.json", "w");
+    String content;
+    serializeJson(json, content);
+    f.print(content);
+    f.close();
 }
 
 void listFiles()
@@ -87,6 +327,11 @@ void listFiles()
         if (!file)
         {
             break;
+        }
+        if (file.name()[0] == '/' && file.name()[1] == '.')
+        {
+            // /.から始まるファイルは無視。
+            continue;
         }
         files[fileCount] = file.name();
         fileCount++;
@@ -120,6 +365,11 @@ void selectFile()
         scene = loadScript;
         return;
     }
+    else if (api->btnp(BTN_RIGHT))
+    {
+        scene = wifiSetting;
+        return;
+    }
 
     api->cls(COLOR_BLACK);
     for (int i = 0; i < fileCount; i++)
@@ -127,6 +377,94 @@ void selectFile()
         api->text(10, i * 10, files[i].c_str(), COLOR_WHITE);
     }
     api->text(0, cursor * 10, ">", COLOR_GREEN);
+
+    api->Draw();
+}
+
+int wifiCursor = 0;
+void wifiSetting()
+{
+    api->Update();
+
+    if (api->btnp(BTN_LEFT))
+    {
+        scene = selectFile;
+        return;
+    }
+
+    if (api->btnp(BTN_UP))
+    {
+        wifiCursor -= 1;
+        if (wifiCursor < 0)
+        {
+            wifiCursor = 0;
+        }
+    }
+    if (api->btnp(BTN_DOWN))
+    {
+        wifiCursor += 1;
+        if (wifiCursor >= SSID_MAX)
+        {
+            wifiCursor = SSID_MAX - 1;
+        }
+    }
+    if (api->btnp(BTN_A))
+    {
+        if (setting.ssids[wifiCursor] != "")
+        {
+            selectedSsid = setting.ssids[wifiCursor];
+            scene = inputPassword;
+            return;
+        }
+    }
+    if (api->btnp(BTN_B))
+    {
+        if (setting.ssids[wifiCursor] != "")
+        {
+            selectedSsid = setting.ssids[wifiCursor];
+            scene = deleteSsid;
+            return;
+        }
+    }
+
+    api->cls(COLOR_BLACK);
+    api->text(0, 0, "WIFI SETTING", COLOR_WHITE);
+    for (int i = 0; i < SSID_MAX; i++)
+    {
+        api->text(10, 10 + 10 * i, (String(i + 1) + ": " + (setting.ssids[i] == "" ? String("NO DATA") : setting.ssids[i])).c_str(), COLOR_WHITE);
+    }
+
+    api->text(0, 10 + 10 * wifiCursor, ">", COLOR_GREEN);
+    api->Draw();
+}
+
+void deleteSsid()
+{
+    api->Update();
+
+    if (api->btnp(BTN_A))
+    {
+        for (int i = 0; i < SSID_MAX; i++)
+        {
+            if (setting.ssids[i] == selectedSsid)
+            {
+                setting.ssids[i] = "";
+                setting.passwords[i] = "";
+                saveSetting();
+                loadSetting();
+                scene = wifiSetting;
+            }
+        }
+    }
+    if (api->btnp(BTN_B))
+    {
+        scene = wifiSetting;
+        return;
+    }
+
+    api->cls(COLOR_BLACK);
+    api->text(0, 0, "DELETE OK?", COLOR_WHITE);
+    api->text(10, 10, ("SSID: " + selectedSsid).c_str(), COLOR_WHITE);
 
     api->Draw();
 }
@@ -170,6 +508,7 @@ void loadScript()
 int actualFps = 0;
 int frameCount = 0;
 int frameCountStartTime = 0;
+int extendTime = 0;
 
 void gameMain()
 {
@@ -188,7 +527,7 @@ void gameMain()
         Serial.println("FPS: " + String(actualFps));
     }
 
-    if (frameMillis > finish - start)
+    if (frameMillis + extendTime > finish - start)
     {
         // 許容時間ないに収まっていればdelayするだけ。
         delay(frameMillis - (finish - start));
@@ -201,6 +540,8 @@ void gameMain()
         {
             runUpdate();
         }
+        // ドロップフレームして巻いた分の時間を持っておく
+        extendTime = drop * frameMillis - (finish - start);
     }
 }
 
@@ -232,22 +573,61 @@ void runDraw()
     api->Draw();
 }
 
-void setupNetwork()
+void connectWiFi()
 {
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    int i = findConnectableWifiIndex();
+    if (i == -1)
+    {
+        scene = listFiles;
+        return;
+    }
+
+    String ssid = setting.ssids[i];
+    String password = setting.passwords[i];
+
+    WiFi.begin(ssid.c_str(), password.c_str());
+    int n = 0;
+    api->cls(COLOR_BLACK);
+    api->text(0, 0, "CONNECTING...", COLOR_WHITE);
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(1000);
-        Serial.print(".");
+        api->text(n * 6, 10, ".", COLOR_WHITE);
+        api->Draw();
+        n += 1;
+        if (n > 10)
+        {
+            scene = failedConnectWiFi;
+        }
     }
-    Serial.print("Wi-Fi Connected! IP address: ");
-    Serial.println(WiFi.localIP());
+    setupMDNS();
+    setupWebServer();
+
+    scene = listFiles;
+}
+
+void failedConnectWiFi()
+{
+    api->cls(COLOR_BLACK);
+    api->text(0, 0, "CONNECT FAILED.", COLOR_WHITE);
+    api->Draw();
+    if (api->btnp(BTN_A | BTN_B))
+    {
+        scene = selectSSID;
+    }
+}
+
+void setupMDNS()
+{
     if (!MDNS.begin(HOST_NAME))
     {
         Serial.println("Error setup MDNS.");
     }
     MDNS.addService("http", "tcp", API_PORT);
+}
 
+void setupWebServer()
+{
     webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(200, "text/plain", "running");
     });
@@ -296,4 +676,26 @@ void setupNetwork()
         request->send(404);
     });
     webServer.begin();
+}
+
+String uploadContent;
+void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+{
+    if (!index)
+    {
+        uploadContent = "";
+        Serial.printf("UploadStart: %s\n", filename.c_str());
+    }
+    char buff[len + 1] = {0};
+    memcpy(buff, data, len);
+    uploadContent += buff;
+
+    if (final)
+    {
+        File f = SPIFFS.open(String("/" + filename).c_str(), "w");
+        f.print(uploadContent);
+        f.close();
+        uploadContent = "";
+        Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index + len);
+    }
 }
