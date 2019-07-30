@@ -31,11 +31,11 @@ https://youtu.be/0KpF7hCuopo
 ## ファームウェア書き込み
 
 1. Arduino IDEのインストール  
-こちらよりダウンロードし、インストールします。
+こちらよりダウンロードし、インストールします。  
 https://www.arduino.cc/en/main/software
 
 2. arduino-esp32 の設定  
-こちらの手順にしたがってArduino IDEにarduino-esp32をインストールします。
+こちらの手順にしたがってArduino IDEにarduino-esp32をインストールします。  
 https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_manager.md
 
 3. このリポジトリをダウンロード  
@@ -47,23 +47,39 @@ ESPAsyncWebServer, AsyncTCP はリンクから3の手順と同じく、ZIPファ
 解凍したファイルをlibrariesフォルダにコピーしてください。  
 そのほかは、Arduino IDEのメニューから、[スケッチ]->[ライブラリをインクルード]->[ライブラリを管理...]からライブラリ名で探してインストールしてください。
 
-5. ファームウェア書き込み
+5. ファームウェア書き込み  
 ESP32-DevKitCとPCをUSBケーブルで接続し、  
-3でダウンロードしたファイルを解凍し、espconsole.inoをArduino IDEで開き、  
-「マイコンボードに書き込む」（アイコンが右矢印）ボタンを押して、ファームウェアを書き込みます。  
-書き込みに成功すれば、液晶にWIFI接続設定画面が表示されます。
+3でダウンロードしたファイルを解凍し、espconsole.inoをArduino IDEで開きます。  
+Arduino IDEのメニューから、[ツール]->[ボード]から「ESP32 Dev Module」を洗濯します。  
+[ツール]->[ボード]の下にUpload Speedなどが表示されるので、  
+以下に従い設定を変更します。
+
+- Upload Speed: 921600
+- CPU Frequency: 240MHz (WiFi/BT)
+- Flash Frequency: 80MHz
+- Flash Mode: QUI
+- Flash Size: 4MB (32Mb)
+- Partition Scheme: Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)
+- Core Debug Level: なし
+- PSRAM: Disabled
+
+  [ツール]->[ボード]->[シリアルポート]から「...USBtoUART」という名前のものを探し選択します。  
+これは、ESP32-DevKitCをUSBケーブルで接続してないと表示されないので注意してください。  
+
+  「マイコンボードに書き込む」（アイコンが右矢印）ボタンを押して、ファームウェアを書き込みます。  
+  書き込みに成功すれば、液晶にWIFI接続設定画面が表示されます。
 
 ## Dependency Arduino libraries
-- Adafruit_GFX
+- Adafruit_GFX (1.5.6)
   - https://github.com/adafruit/Adafruit-GFX-Library
-- Adafruit_ST7735
+- Adafruit_ST7735 (1.3.7)
   - https://github.com/adafruit/Adafruit-ST7735-Library
-- ESPAsyncWebServer
+- ESPAsyncWebServer (commit: b0c6144886f4e1f88684f708d7b2974143d8601c)
   - https://github.com/me-no-dev/ESPAsyncWebServer
-- AsyncTCP
+- AsyncTCP (commit: 90715ae6b3ee72e9e40cd3dd2f9609217bf3ee02)
   - https://github.com/me-no-dev/AsyncTCP
-- ArduinoJson
-
+- ArduinoJson (6.11.1)
+  - https://github.com/bblanchon/ArduinoJson
 
 ## ゲームAPI
 ### INPUT
