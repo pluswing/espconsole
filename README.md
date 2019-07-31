@@ -28,6 +28,9 @@ https://youtu.be/0KpF7hCuopo
 ## 回路図
 ![回路図](./docs/imgs/circuit.png)
 
+## ブレッドボード配線例
+![ブレッドボード配線例](./docs/imgs/overview.jpg)
+
 ## ファームウェア書き込み
 
 1. Arduino IDEのインストール  
@@ -80,6 +83,68 @@ Arduino IDEのメニューから、[ツール]->[ボード]から「ESP32 Dev Mo
   - https://github.com/me-no-dev/AsyncTCP
 - ArduinoJson (6.11.1)
   - https://github.com/bblanchon/ArduinoJson
+
+## 操作方法
+
+### SSID選択画面
+
+ファームウェア書き込み直後は、この画面が表示されます。  
+接続するSSIDを選択します。
+
+- 上: カーソル移動
+- 下: カーソル移動
+- B: WIFI接続をキャンセルし、ゲーム選択画面へ
+- A: 決定し、パスワード入力画面へ
+
+![SSID選択画面](./docs/imgs/select_ssid.jpg)
+
+### パスワード入力画面
+選択したSSIDのパスワードを入力します。  
+入力したパスワードが間違えている場合、再度SSID選択画面へ遷移します。
+
+- 上: 文字変更
+- 下: 文字変更
+- 右: 
+  - 入力時: 大文字、小文字変換。記号選択時は'A'に戻る
+  - [OK]選択時: 入力へ戻る
+- 左: [OK]へ移動
+- A:
+  - 入力時: 文字確定
+  - [OK]選択時: 保存
+- B: 1文字削除
+
+![パスワード入力](./docs/imgs/input_password.jpg)
+
+### ゲーム選択画面
+ゲームは初回起動時は何も入っていません。  
+WEB APIでゲームファイルをアップロードしてください。
+
+- 上: カーソル移動
+- 下: カーソル移動
+- 右: WIFI設定画面へ
+- A: ゲーム開始
+
+![ゲーム選択](./docs/imgs/select_game.jpg)
+
+### WIFI設定画面
+保存済みのWIFI設定の確認・変更・削除を行います。
+
+- 上: カーソル移動
+- 下: カーソル移動
+- 左: ゲーム選択画面へ
+- A: パスワード再入力
+- B: SSID削除画面へ
+
+![WIFI設定](./docs/imgs/wifi_setting.jpg)
+
+### SSID削除画面
+SSIDを削除します。
+
+- A: 削除
+- B: 削除キャンセル
+
+![SSID削除画面](./docs/imgs/delete_ssid.jpg)
+
 
 ## ゲームAPI
 ### INPUT
