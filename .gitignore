@@ -1,3 +1,4 @@
 .vscode/c_cpp_properties.json
 config.h
 
+tolua_game_api.cpp-e

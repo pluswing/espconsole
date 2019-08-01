@@ -21,10 +21,39 @@ GameApi::GameApi()
     pinMode(BTN_B_PIN, INPUT_PULLUP);
 
     Calibrate();
+
+    actualFps = 0;
+    fps = 30;
 }
 
 GameApi::~GameApi()
 {
+}
+
+int GameApi::width()
+{
+    return display->width();
+}
+
+int GameApi::height()
+{
+    return display->height();
+}
+
+void GameApi::setFPS(int fps)
+{
+    this->fps = fps;
+}
+int GameApi::getFPS()
+{
+    return fps;
+}
+
+void GameApi::showFPS(int x, int y, int color)
+{
+    backScreen->setCursor(x, y);
+    backScreen->setTextColor(color, this->color(60, 60, 60));
+    backScreen->print((String(actualFps) + "/" + String(fps)).c_str());
 }
 
 void GameApi::cls(int color)
@@ -66,11 +95,18 @@ void GameApi::text(int x, int y, const char *s, int color)
     backScreen->setTextColor(color);
     backScreen->print(s);
 }
-
-void GameApi::bmp(int x, int y, const unsigned char* bmp, int w, int h, int color) {
-    backScreen->drawBitmap(x, y, bmp, w, h, color);
+int GameApi::color(int r, int g, int b)
+{
+    r = r * (1 << 5) / 255;
+    g = g * (1 << 6) / 255;
+    b = b * (1 << 5) / 255;
+    return (b << 11) + (g << 5) + r;
 }
 
+void GameApi::bmp(int x, int y, const unsigned char *bmp, int w, int h, int color)
+{
+    backScreen->drawBitmap(x, y, bmp, w, h, color);
+}
 
 void GameApi::Draw()
 {
@@ -135,6 +171,13 @@ void GameApi::Update()
     {
         buttonState += BTN_LEFT;
     }
+}
+
+void GameApi::Error(const char *message)
+{
+    backScreen->setCursor(0, 0);
+    backScreen->setTextColor(COLOR_RED, color(60, 60, 60));
+    backScreen->print(message);
 }
 
 Analog GameApi::ReadRawAnalogInput()

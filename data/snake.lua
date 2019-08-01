@@ -12,13 +12,13 @@ local moveCount = 0
 
 function update()
 
-    if api:btnp(BTN_UP) ~= 0 then
+    if api:btnp(BTN_UP) then
         direction = 0
-    elseif api:btnp(BTN_LEFT) ~= 0 then
+    elseif api:btnp(BTN_LEFT) then
         direction = 3
-    elseif api:btnp(BTN_RIGHT) ~= 0 then
+    elseif api:btnp(BTN_RIGHT) then
         direction = 1
-    elseif api:btnp(BTN_DOWN) ~= 0 then
+    elseif api:btnp(BTN_DOWN) then
         direction = 2
     end
 

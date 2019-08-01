@@ -1,40 +1,41 @@
 local api = GetApi()
+--api:setFPS(30);
 
 local press = ""
 
 function update()
     press = ""
-    if api:btn(BTN_A) ~= 0 then
+    if api:btn(BTN_A) then
         press = press .. "A "
     else
         press = press .. "  "
     end
 
-    if api:btn(BTN_B) ~= 0 then
+    if api:btn(BTN_B) then
         press = press .. "B "
     else
         press = press .. "  "
     end
 
-    if api:btn(BTN_UP) ~= 0 then
+    if api:btn(BTN_UP) then
         press = press .. "U "
     else
         press = press .. "  "
     end
 
-    if api:btn(BTN_DOWN) ~= 0 then
+    if api:btn(BTN_DOWN) then
         press = press .. "D "
     else
         press = press .. "  "
     end
 
-    if api:btn(BTN_LEFT) ~= 0 then
+    if api:btn(BTN_LEFT) then
         press = press .. "L "
     else
         press = press .. "  "
     end
 
-    if api:btn(BTN_RIGHT) ~= 0 then
+    if api:btn(BTN_RIGHT) then
         press = press .. "R "
     else
         press = press .. "  "

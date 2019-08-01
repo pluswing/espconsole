@@ -14,7 +14,6 @@ extern "C"
 #include "toluapp.h"
 #include "game_api.h"
 
-#define FPS 60
 #define HOST_NAME "espconsole"
 #define API_PORT 80
 #define SETTING_BUFFER_SIZE 1500
@@ -230,6 +229,10 @@ void inputPassword()
                 {
                     setting.ssids[i] = selectedSsid;
                     setting.passwords[i] = password;
+                }
+                else
+                {
+                    continue;
                 }
                 saveSetting();
                 scene = findConnectableWifi;
@@ -496,41 +499,49 @@ void loadScript()
     }
     Serial.println(script.c_str());
 
-    // if (luaL_dostring(L, "local api = GetApi()\nfunction update()\nend\nfunction draw()\n-- api:cls(COLOR_BLACK)\napi:circb(api:analogX() + 80, api:analogY() + 64, 20, COLOR_GREEN)\nend\n") != 0)
     if (luaL_dostring(L, script.c_str()) != 0)
     {
-        Serial.println("ERR");
-        api->print(lua_tostring(L, -1));
+        api->Error(lua_tostring(L, -1));
+        scene = nop;
     }
-    scene = gameMain;
+    else
+    {
+        scene = gameMain;
+    }
 }
 
-int actualFps = 0;
 int frameCount = 0;
 int frameCountStartTime = 0;
 int extendTime = 0;
 
 void gameMain()
 {
-    int frameMillis = 1000 / FPS;
+    int frameMillis = 1000 / api->getFPS();
 
     int start = millis();
-    runOneFrame();
+    try
+    {
+        runOneFrame();
+    }
+    catch (char *s)
+    {
+        return;
+    }
     frameCount++;
     int finish = millis();
 
     if (finish - frameCountStartTime > 1000)
     {
-        actualFps = frameCount;
+        api->actualFps = frameCount;
         frameCount = 0;
         frameCountStartTime = finish;
-        Serial.println("FPS: " + String(actualFps));
     }
 
     if (frameMillis + extendTime > finish - start)
     {
-        // 許容時間ないに収まっていればdelayするだけ。
-        delay(frameMillis - (finish - start));
+        // 許容時間ないに収まっていればdelayするだけ。 調整のため+1msしとく。
+        delay((frameMillis + extendTime) - (finish - start) + 1);
+        extendTime = 0;
     }
     else
     {
@@ -538,11 +549,23 @@ void gameMain()
         int drop = ceil((float)(finish - start) / frameMillis) - 1;
         for (int i = 0; i < drop; i++)
         {
-            runUpdate();
+            try
+            {
+                runUpdate();
+            }
+            catch (char *e)
+            {
+                return;
+            }
         }
         // ドロップフレームして巻いた分の時間を持っておく
-        extendTime = drop * frameMillis - (finish - start);
+        extendTime = (drop + 1) * frameMillis - (finish - start);
     }
+}
+
+void nop()
+{
+    api->Draw();
 }
 
 void runOneFrame()
@@ -558,7 +581,9 @@ void runUpdate()
     lua_getglobal(L, "update");
     if (lua_pcall(L, 0, 0, 0) != 0)
     {
-        api->print(lua_tostring(L, -1));
+        api->Error(lua_tostring(L, -1));
+        scene = nop;
+        throw "";
     }
 }
 
@@ -567,9 +592,10 @@ void runDraw()
     lua_getglobal(L, "draw");
     if (lua_pcall(L, 0, 0, 0) != 0)
     {
-        api->print(lua_tostring(L, -1));
+        api->Error(lua_tostring(L, -1));
+        scene = nop;
+        throw "";
     }
-
     api->Draw();
 }
 

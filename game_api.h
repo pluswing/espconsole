@@ -55,6 +55,14 @@ public:
     virtual ~GameApi();
 
     // TOLUA_BEGIN
+
+    // Enviroments
+    int width();
+    int height();
+    void setFPS(int fps);
+    int getFPS();
+    void showFPS(int x, int y, int color);
+
     // Graphics
     void cls(int color);
     void pix(int x, int y, int color);
@@ -64,9 +72,10 @@ public:
     void circ(int x, int y, int r, int color);
     void circb(int x, int y, int r, int color);
     void text(int x, int y, const char *s, int color);
+    int color(int r, int g, int b);
 
     // TOLUA_END
-    void bmp(int x, int y, const unsigned char* bmp, int w, int h, int color);
+    void bmp(int x, int y, const unsigned char *bmp, int w, int h, int color);
     // TOLUA_BEGIN
 
     // Input/Output
@@ -82,8 +91,12 @@ public:
     void Calibrate();
     void Update();
     void Draw();
+    void Error(const char *message);
+
+    int actualFps;
 
 private:
+    int fps;
     Adafruit_ST7735 *display;
     GFXcanvas16 *backScreen;
 
