@@ -147,12 +147,31 @@ SSIDを削除します。
 
 
 ## ゲームAPI
+### ENV
+- width()  
+  画面の幅を取得します。
+- height()  
+  画面の高さを取得します。
+- setFPS(fps)  
+  FPSを設定します。
+- getFPS()  
+  設定されているFPSを取得します。
+- showFPS(x, y, color)  
+  [デバッグ用] FPSを画面に描画します。
+- print(s)
+  [デバッグ用] 文字列`s`をシリアルコンソールに出力します。
+
 ### INPUT
-- btn(button)
-- btnp(button)
-- btnr(button)
-- analogX()
-- analogY()
+- btn(button)  
+  指定のボタンが押されている場合、`true`を返します。
+- btnp(button)  
+  そのフレーム中に指定のボタンが押された時に`true`を返します。
+- btnr(button)  
+  そのフレーム中に指定のボランが話された時に`true`を返します。
+- analogX()  
+  アナログスティックの横方向の入力値を`-100`~`100`の値で取得します。
+- analogY()  
+  アナログスティックの縦方向の入力値を`-100`~`100`の値で取得します。
 
 ### buttons
 - BTN_A
@@ -163,14 +182,24 @@ SSIDを削除します。
 - BTN_RIGHT
 
 ### Graphics
-- cls(color)
-- pix(x, y, color)
-- line(x1, y1, x2, y2, color)
-- rect(x, y, w, h, color) -- 矩形（塗りつぶし）
-- rectb(x, y, w, h, color) -- 輪郭線
-- circ(x, y, r, color)
-- circb(x, y, r, color)
-- text(x, y, s, color)
+- cls(color)  
+  画面を指定色で塗りつぶします。
+- pix(x, y, color)  
+  `color`色で`x`, `y`にドットを描画します。
+- line(x1, y1, x2, y2, color)  
+  `color`色で`(x1,y1)`, `(x2, y2)`間に線を描画します。
+- rect(x, y, w, h, color)  
+  `color`色で`(x,y)`を起点に幅`w`,高さ`h`の矩形（塗りつぶし）を描画します。
+- rectb(x, y, w, h, color)  
+  `color`色で`(x,y)`を起点に幅`w`,高さ`h`の矩形（輪郭線のみ）を描画します。
+- circ(x, y, r, color)  
+  `color`色で`(x,y)`を起点に半径`r`の円（塗りつぶし）を描画します。
+- circb(x, y, r, color)  
+  `color`色で`(x,y)`を起点に半径`r`の円（輪郭線のみ）を描画します。
+- text(x, y, s, color)  
+  `color`色で文字列`s`を`(x, y)`座標を起点に描画します。
+- color(r, g, b)  
+  色を作成します。`r,g,b`それぞれ0-255の間で指定してください。
 
 ### colors
 - COLOR_WHITE
@@ -182,7 +211,7 @@ SSIDを削除します。
 - COLOR_CYAN
 - COLOR_YELLOW
 
-色指定は、BGR565です。
+色指定は、BGR565です。`color()`メソッドで色を作成することができます。
 
 ## Web API
 
