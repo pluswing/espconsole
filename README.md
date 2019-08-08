@@ -33,6 +33,10 @@ https://youtu.be/0KpF7hCuopo
 
 ## ファームウェア書き込み
 
+書き込み手順の動画はこちら  
+https://youtu.be/W4PruBg9Ut0  
+
+
 1. Arduino IDEのインストール  
 こちらよりダウンロードし、インストールします。  
 https://www.arduino.cc/en/main/software
@@ -85,6 +89,10 @@ Arduino IDEのメニューから、[ツール]->[ボード]から「ESP32 Dev Mo
   - https://github.com/bblanchon/ArduinoJson
 
 ## 操作方法
+
+操作方法についての動画はこちら  
+https://youtu.be/Zx4Hu4sScks
+
 
 ### SSID選択画面
 
@@ -147,6 +155,14 @@ SSIDを削除します。
 
 
 ## ゲームAPI
+
+開発言語であるLuaとゲームAPIの解説・紹介動画はこちら  
+https://youtu.be/7wDIN2hJ3MU
+
+サンプルゲームのライブコーディングはこちら  
+https://youtu.be/lSGPfCBZl14
+
+
 ### ENV
 - width()  
   画面の幅を取得します。
@@ -223,3 +239,6 @@ curl -X POST http://espconsole.local/delete -F "file=/test3.lua"
 
 ## list files
 curl -X POST http://espconsole.local/list
+
+# License
+MIT
