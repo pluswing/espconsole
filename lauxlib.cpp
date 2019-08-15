@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <SPIFFS.h>
+
 /* This file uses only the official API of Lua.
 ** Any function declared here could be written as an application function.
 */
@@ -18,9 +20,11 @@
 #define lauxlib_c
 #define LUA_LIB
 
+extern "C"
+{
 #include "lua.h"
-
 #include "lauxlib.h"
+}
 
 #define FREELIST_REF 0 /* free list of references */
 
@@ -541,11 +545,10 @@ LUALIB_API void luaL_unref(lua_State *L, int t, int ref)
 ** Load functions
 ** =======================================================
 */
-
 typedef struct LoadF
 {
     int extraline;
-    FILE *f;
+    File f;
     char buff[LUAL_BUFFERSIZE];
 } LoadF;
 
@@ -559,9 +562,9 @@ static const char *getF(lua_State *L, void *ud, size_t *size)
         *size = 1;
         return "\n";
     }
-    if (feof(lf->f))
+    if (lf->f.position() == lf->f.size()) // feof
         return NULL;
-    *size = fread(lf->buff, 1, sizeof(lf->buff), lf->f);
+    *size = lf->f.readBytes(lf->buff, sizeof(lf->buff));
     return (*size > 0) ? lf->buff : NULL;
 }
 
@@ -581,42 +584,39 @@ LUALIB_API int luaL_loadfile(lua_State *L, const char *filename)
     int c;
     int fnameindex = lua_gettop(L) + 1; /* index of filename on the stack */
     lf.extraline = 0;
-    if (filename == NULL)
-    {
-        lua_pushliteral(L, "=stdin");
-        lf.f = stdin;
-    }
-    else
-    {
-        lua_pushfstring(L, "@%s", filename);
-        lf.f = fopen(filename, "r");
-        if (lf.f == NULL)
-            return errfile(L, "open", fnameindex);
-    }
-    c = getc(lf.f);
+
+    lua_pushfstring(L, "@%s", filename);
+    lf.f = SPIFFS.open(filename, "r");
+    if (!lf.f.available())
+        return errfile(L, "open", fnameindex);
+
+    c = lf.f.read();
     if (c == '#')
     { /* Unix exec. file? */
         lf.extraline = 1;
-        while ((c = getc(lf.f)) != EOF && c != '\n')
+        while ((c = lf.f.read()) != EOF && c != '\n')
             ; /* skip first line */
         if (c == '\n')
-            c = getc(lf.f);
+            c = lf.f.read();
     }
     if (c == LUA_SIGNATURE[0] && filename)
-    {                                         /* binary file? */
-        lf.f = freopen(filename, "rb", lf.f); /* reopen in binary mode */
-        if (lf.f == NULL)
+    {
+        /* reopen in binary mode */
+        lf.f.close();
+        lf.f = SPIFFS.open(filename, "rb");
+
+        if (!lf.f.available())
             return errfile(L, "reopen", fnameindex);
         /* skip eventual `#!...' */
-        while ((c = getc(lf.f)) != EOF && c != LUA_SIGNATURE[0])
+        while ((c = lf.f.read()) != EOF && c != LUA_SIGNATURE[0])
             ;
         lf.extraline = 0;
     }
-    ungetc(c, lf.f);
+    lf.f.seek(0);
     status = lua_load(L, getF, &lf, lua_tostring(L, -1));
-    readstatus = ferror(lf.f);
+    readstatus = -1; //ferror(lf.f);
     if (filename)
-        fclose(lf.f); /* close file (even in case of errors) */
+        lf.f.close(); /* close file (even in case of errors) */
     if (readstatus)
     {
         lua_settop(L, fnameindex); /* ignore results from `lua_load' */

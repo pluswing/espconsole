@@ -1,16 +1,15 @@
-extern "C"
-{
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
-
 #include <string.h>
 #include <SPIFFS.h>
 #include <ESPmDNS.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
+extern "C"
+{
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
 #include "toluapp.h"
 #include "game_api.h"
 
