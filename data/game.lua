@@ -1,3 +1,5 @@
+require("strict")
+
 local api = GetApi()
 
 api:setFPS(30)

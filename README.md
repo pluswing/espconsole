@@ -232,13 +232,19 @@ https://youtu.be/lSGPfCBZl14
 ## Web API
 
 ## upload file
+```
 curl -X POST http://espconsole.local/upload -F "file=@input_test.lua"
+```
 
 ## delete file
+```
 curl -X POST http://espconsole.local/delete -F "file=/test3.lua"
+```
 
 ## list files
+```
 curl -X POST http://espconsole.local/list
+```
 
 # License
 MIT

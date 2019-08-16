@@ -483,6 +483,7 @@ void loadScript()
     tolua_game_api_open(L);
     Serial.print("LOAD: ");
     Serial.println(files[cursor].c_str());
+    /*
     File f = SPIFFS.open(files[cursor].c_str(), "r");
     String script;
     char buf[256];
@@ -497,8 +498,10 @@ void loadScript()
         script += buf;
     }
     Serial.println(script.c_str());
-
     if (luaL_dostring(L, script.c_str()) != 0)
+    /*/
+    if (luaL_dofile(L, files[cursor].c_str()) != 0)
+    //*/
     {
         api->Error(lua_tostring(L, -1));
         scene = nop;

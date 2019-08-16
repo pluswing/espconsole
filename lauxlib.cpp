@@ -564,7 +564,9 @@ static const char *getF(lua_State *L, void *ud, size_t *size)
     }
     if (lf->f.position() == lf->f.size()) // feof
         return NULL;
-    *size = lf->f.readBytes(lf->buff, sizeof(lf->buff));
+    *size = lf->f.readBytes(lf->buff, sizeof(lf->buff) - 1);
+    lf->buff[*size] = '\0';
+    // Serial.print(lf->buff);
     return (*size > 0) ? lf->buff : NULL;
 }
 
@@ -614,7 +616,7 @@ LUALIB_API int luaL_loadfile(lua_State *L, const char *filename)
     }
     lf.f.seek(0);
     status = lua_load(L, getF, &lf, lua_tostring(L, -1));
-    readstatus = -1; //ferror(lf.f);
+    readstatus = 0; //ferror(lf.f);
     if (filename)
         lf.f.close(); /* close file (even in case of errors) */
     if (readstatus)
@@ -622,6 +624,8 @@ LUALIB_API int luaL_loadfile(lua_State *L, const char *filename)
         lua_settop(L, fnameindex); /* ignore results from `lua_load' */
         return errfile(L, "read", fnameindex);
     }
+    Serial.print("lua_load status: ");
+    Serial.println(status);
     lua_remove(L, fnameindex);
     return status;
 }
