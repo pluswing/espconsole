@@ -83,11 +83,11 @@ void GameApi::rectb(int x, int y, int w, int h, int color)
 
 void GameApi::circ(int x, int y, int r, int color)
 {
-    backScreen->drawCircle(x, y, r, color);
+    backScreen->fillCircle(x, y, r, color);
 }
 void GameApi::circb(int x, int y, int r, int color)
 {
-    backScreen->fillCircle(x, y, r, color);
+    backScreen->drawCircle(x, y, r, color);
 }
 void GameApi::text(int x, int y, const char *s, int color)
 {
